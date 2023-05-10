@@ -6,7 +6,7 @@
 /*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/09 01:00:17 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/10 07:14:54 by mcutura          ###   ########.fr       */
+/*   Updated: 2023/05/10 09:22:09 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ char	*get_next_line(int fd)
 	char			*nline;
 	char			*tmp;
 
-	if (fd < 0)
+	if (fd < 0 || BUFFER_SIZE < 1)
 		return (NULL);
 	nline = NULL;
 	while (1)
