@@ -22,6 +22,17 @@ size_t	ft_strlen(const char *str)
 	return (len);
 }
 
+void	*ft_memccpy(void *dest, const void *src, int c, size_t n)
+{
+	while (n--)
+	{
+		*(int *)dest = *(int *)src++;
+		if (*(int *)dest++ == c)
+			return (dest);
+	}
+	return (NULL);
+}
+
 size_t	ft_strlcpy(char *dst, const char *src, size_t size)
 {
 	size_t	srclen;
