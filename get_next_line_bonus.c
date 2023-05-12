@@ -98,7 +98,7 @@ static char	*retrieve_nline(t_data *d)
 
 	nl = NULL;
 	tmp = NULL;
-	while (!tmp && d->pos <= d->rbytes) //rewrite conditions
+	while (!tmp && d->pos <= d->rbytes)
 	{
 		tmp = find_nline(d);
 		if (!tmp)
@@ -107,18 +107,14 @@ static char	*retrieve_nline(t_data *d)
 			d->rbytes = read(d->fd, d->buff, BUFFER_SIZE);
 			d->pos = 0;
 			if (d->rbytes == -1)
-			{
-				d->rbytes++;
-				return (free(nl), NULL);
-			}
+				return (free(nl), d->rbytes++, NULL);
 			d->buff[d->rbytes] = 0;
 			if (!(d->rbytes))
 				return (nl);
 		}
 	}
 	nl = ft_strjoin(nl, tmp);
-	free(tmp);
-	return (nl);
+	return (free(tmp), nl);
 }
 
 /*
