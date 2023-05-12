@@ -1,18 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_utils.c                              :+:      :+:    :+:   */
+/*   get_next_line_utils_bonus.c                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/05/09 03:45:34 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/10 07:14:37 by mcutura          ###   ########.fr       */
+/*   Created: 2023/05/10 09:32:36 by mcutura           #+#    #+#             */
+/*   Updated: 2023/05/10 09:32:40 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line.h"
+#include "get_next_line_bonus.h"
 
-size_t	ft_strlen(char *str)
+size_t	ft_strlen(const char *str)
 {
 	size_t	len;
 
@@ -22,7 +22,7 @@ size_t	ft_strlen(char *str)
 	return (len);
 }
 
-size_t	ft_strlcpy(char *dst, char *src, size_t size)
+size_t	ft_strlcpy(char *dst, const char *src, size_t size)
 {
 	size_t	srclen;
 	size_t	i;
@@ -43,7 +43,7 @@ size_t	ft_strlcpy(char *dst, char *src, size_t size)
 	return (srclen);
 }
 
-size_t	ft_strlcat(char *dst, char *src, size_t size)
+size_t	ft_strlcat(char *dst, const char *src, size_t size)
 {
 	size_t	srclen;
 	size_t	dstlen;
@@ -67,32 +67,43 @@ size_t	ft_strlcat(char *dst, char *src, size_t size)
 	return (dstlen + srclen);
 }
 
-char	*ft_strjoin(char *s1, char *s2)
+char	*ft_strjoin(char *s1, const char *s2)
 {
 	char	*joined;
 	size_t	len;
 
 	if (!s1)
 	{
-		s1 = malloc(1);
-		s1[0] = 0;
+		s1 = malloc(sizeof(char));
+		*s1 = 0;
 	}
-	if (!s2 || !*s2)
+	if (!s2 || (!*s1 && !*s2))
+		return (free(s1), NULL);
+	if (!*s2)
 		return (s1);
 	len = ft_strlen(s1) + ft_strlen(s2) + 1;
 	joined = malloc(len);
 	if (!joined)
-		return (free(s1), NULL);
+		return (NULL);
 	ft_strlcpy(joined, s1, len);
 	ft_strlcat(joined, s2, len);
-	return (free(s1), joined);
+	free(s1);
+	return (joined);
 }
 
-char	*ft_substr(char *s, size_t start, size_t end)
+/*
+Allocates memory for a new string and copies the contents of the
+given string to it from start index to end index (not included).
+Returns a pointer to the new string or NULL on error.
+Use free() to deallocate the string.
+*/
+char	*ft_substr(const char *s, size_t start, size_t end)
 {
 	size_t	memsize;
 	char	*sub;
 
+	if (!s)
+		return (NULL);
 	memsize = end - start + 1;
 	sub = malloc(memsize);
 	if (!sub)

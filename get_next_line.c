@@ -30,7 +30,7 @@ static char	*find_nline(char *str, ssize_t *i, ssize_t r)
 	}
 	if (n == -1)
 		return (NULL);
-	line = ft_substr(str, *i, n - *i);
+	line = ft_substr(str, *i, n);
 	*i = s;
 	if (s == r)
 		*i = 0;
