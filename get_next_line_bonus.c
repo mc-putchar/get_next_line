@@ -9,7 +9,7 @@
 /*   Updated: 2023/05/10 09:32:50 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-//TODO: rewrite all dependencies from ft_strlcpy to ft_memccpy
+
 #include "get_next_line_bonus.h"
 
 //Create allocated save struct w/ buffer remainder and file descriptor
