@@ -6,7 +6,7 @@
 /*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/09 02:02:07 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/10 07:14:28 by mcutura          ###   ########.fr       */
+/*   Updated: 2023/05/19 06:13:45 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,21 +16,20 @@
 # include <stdlib.h>
 # include <unistd.h>
 # ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 42
+#  define BUFFER_SIZE 4242
 # endif
 
-typedef struct s_data
+typedef struct s_stream
 {
-	ssize_t	pos;
-	ssize_t	rbytes;
-	char	buff[BUFFER_SIZE + 1];
-}	t_data;
+	int				fd;
+	ssize_t			len;
+	size_t			off;
+	unsigned char	buff[BUFFER_SIZE];
+}	t_stream;
 
-char	*get_next_line(int fd);
-size_t	ft_strlen(char *str);
-size_t	ft_strlcpy(char *dst, char *src, size_t size);
-size_t	ft_strlcat(char *dst, char *src, size_t size);
-char	*ft_strjoin(char *s1, char *s2);
-char	*ft_substr(char *s, size_t start, size_t end);
+char			*get_next_line(int fd);
+void			*ft_memcpy(void	*dest, const void *src, size_t n);
+void			*ft_memccpy(void *dest, const void *src, int c, size_t n);
+void			*ft_memgrow(void *ptr, size_t old_size, size_t new_size);
 
 #endif
