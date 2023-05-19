@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/05/10 09:32:29 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/10 09:32:33 by mcutura          ###   ########.fr       */
+/*   Created: 2023/05/19 06:17:41 by mcutura           #+#    #+#             */
+/*   Updated: 2023/05/19 06:19:24 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,32 +16,27 @@
 # include <stdlib.h>
 # include <unistd.h>
 # ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 42
+#  define BUFFER_SIZE 1337
 # endif
-# define MAX_MALLOC_ATTEMPTS 7
+# define FD_LIMIT 4096
 
-typedef struct s_save
+typedef struct s_stream
 {
 	int				fd;
-	char			buff[BUFFER_SIZE + 1];
-	struct s_save	*next;
-}	t_save;
+	ssize_t			len;
+	size_t			off;
+	unsigned char	buff[BUFFER_SIZE];
+}	t_stream;
 
-typedef struct s_data
+typedef struct s_buffer
 {
-	ssize_t	pos;
-	ssize_t	rbytes;
-	char	buff[BUFFER_SIZE + 1];
-	int		fd;
-	t_save	*save;
-}	t_data;
+	size_t			size;
+	unsigned char	*buff;
+}	t_buffer;
 
-char	*get_next_line(int fd);
-void	*ft_memccpy(void *dest, const void *src, int c, size_t n);
-size_t	ft_strlen(const char *str);
-size_t	ft_strlcpy(char *dst, const char *src, size_t size);
-size_t	ft_strlcat(char *dst, const char *src, size_t size);
-char	*ft_strjoin(char *s1, const char *s2);
-char	*ft_substr(const char *s, size_t start, size_t end);
+char			*get_next_line(int fd);
+void			*ft_memcpy(void	*dest, const void *src, size_t n);
+void			*ft_memccpy(void *dest, const void *src, int c, size_t n);
+void			*ft_memgrow(void *ptr, size_t old_size, size_t new_size);
 
 #endif

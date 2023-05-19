@@ -5,169 +5,99 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/05/10 09:32:18 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/10 09:32:50 by mcutura          ###   ########.fr       */
+/*   Created: 2023/05/19 06:17:16 by mcutura           #+#    #+#             */
+/*   Updated: 2023/05/19 06:17:38 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line_bonus.h"
 
-//Create allocated save struct w/ buffer remainder and file descriptor
-static t_save	*attempt_save(t_data *d, int fd)
+static int	init_buffer(t_stream *stream, t_buffer *re)
 {
-	int		retries;
-	t_save	*save;
-
-	retries = MAX_MALLOC_ATTEMPTS;
-	save = NULL;
-	if (d->rbytes > 0)
+	if (!re->buff)
 	{
-		if (0[d->buff])
+		stream->len = read(stream->fd, stream->buff, BUFFER_SIZE);
+		return (stream->len);
+	}
+	ft_memcpy(stream->buff, re->buff, re->size);
+	free(re->buff);
+	re->buff = NULL;
+	stream->len = re->size;
+	stream->off = 0;
+	return (stream->len);
+}
+
+static void	save_re(t_stream *stream, t_buffer *re)
+{
+	if (stream->off >= (size_t)stream->len)
+		return ;
+	if (stream->off < (size_t)stream->len)
+	{
+		re->size = stream->len - stream->off;
+		re->buff = malloc(re->size);
+	}
+	if (!re->buff)
+		return ;
+	ft_memcpy(re->buff, stream->buff + stream->off, re->size);
+}
+
+static unsigned char	*getl(t_stream *s, size_t *n)
+{
+	unsigned char	*line;
+	unsigned char	*tmp;
+
+	line = NULL;
+	while (s->len > 0)
+	{
+		line = ft_memgrow(line, *n, *n + s->len + 1);
+		if (!line)
+			return (NULL);
+		tmp = ft_memccpy(line + *n, s->buff, 10, s->len);
+		if (tmp)
 		{
-			while (!save && retries--)
-				save = malloc(sizeof(t_save));
-			if (save)
-			{
-				save->fd = d->fd;
-				ft_strlcpy(save->buff, &(d->buff[d->pos]), BUFFER_SIZE + 1);
-				save->next = NULL;
-			}
+			s->off = (size_t)(tmp - line - *n);
+			*n += s->off;
+			return (line);
 		}
+		*n += s->len;
+		s->len = read(s->fd, s->buff, BUFFER_SIZE);
 	}
-	d->buff[0] = 0;
-	d->fd = fd;
-	d->pos = 0;
-	return (save);
+	if (s->len == -1)
+		return (free(line), NULL);
+	return (line);
 }
 
-//If buffer not empty swap states, else overwrite w/ saved data or 0
-static void	load_saved_state(t_data *d, int fd)
+static unsigned char	*gnl(t_stream *s, t_buffer *re)
 {
-	t_save	*save;
-	t_save	*load;
-	t_save	*prev;
+	size_t			n;
+	unsigned char	*line;
 
-	save = attempt_save(d, fd);
-	load = d->save;
-	while (load && load->fd != fd)
-	{
-		prev = load;
-		load = load->next;
-	}
-	if (load && ft_strlcpy(d->buff, load->buff, BUFFER_SIZE + 1))
-	{
-		if (load->next && prev)
-			prev->next = load->next;
-		else
-			d->save = load->next;
-		free(load);
-	}
-	d->rbytes = ft_strlen(d->buff);
-	if (save)
-	{
-		save->next = d->save;
-		d->save = save;
-	}
+	n = 0;
+	if (init_buffer(s, re) < 1)
+		return (NULL);
+	line = getl(s, &n);
+	if (!line)
+		return (NULL);
+	if (s->len > 0)
+		save_re(s, re);
+	line[n] = '\0';
+	return (line);
 }
 
-static char	*find_nline(t_data *d)
-{
-	char	*tmp;
-	char	*nl;
-	ssize_t	n;
-
-	n = d->pos;
-	nl = NULL;
-	while (d->buff[n] && d->buff[n] != '\n')
-		++n;
-	if (d->buff[n] == '\n')
-	{
-		tmp = ft_substr(d->buff, d->pos, ++n);
-		nl = ft_strjoin(nl, tmp);
-		free(tmp);
-		d->pos = n;
-	}
-	return (nl);
-}
-
-//Search for next line break or end of file and return allocated string or NULL
-static char	*retrieve_nline(t_data *d)
-{
-	char	*tmp;
-	char	*nl;
-
-	nl = NULL;
-	tmp = NULL;
-	while (!tmp && d->pos <= d->rbytes)
-	{
-		tmp = find_nline(d);
-		if (!tmp)
-		{
-			nl = ft_strjoin(nl, &(d->buff[d->pos]));
-			d->rbytes = read(d->fd, d->buff, BUFFER_SIZE);
-			d->pos = 0;
-			if (d->rbytes == -1)
-				return (free(nl), d->rbytes++, NULL);
-			d->buff[d->rbytes] = 0;
-			if (!(d->rbytes))
-				return (nl);
-		}
-	}
-	nl = ft_strjoin(nl, tmp);
-	return (free(tmp), nl);
-}
-
-/*
-Returns the next line (line break included) from the provided file descriptor.
-Returns NULL if no more lines are available or an error occurs.
-Use free() to deallocate the returned string.
-*/
 char	*get_next_line(int fd)
 {
-	static t_data	d;
+	static t_buffer	re[FD_LIMIT];
+	unsigned char	*nline;
+	t_stream		*stream;
 
-	if (fd != d.fd)
-		load_saved_state(&d, fd);
-	if (fd < 0 || BUFFER_SIZE < 1)
+	if (BUFFER_SIZE <= 0 || fd < 0 || fd >= FD_LIMIT)
 		return (NULL);
-	if (!d.rbytes)
-	{
-		d.rbytes = read(fd, d.buff, BUFFER_SIZE);
-		if (d.rbytes != -1)
-			d.buff[d.rbytes] = 0;
-	}
-	if (d.rbytes < 1)
-	{
-		d.buff[0] = 0;
-		d.pos = 0;
+	stream = malloc(sizeof(t_stream));
+	if (!stream)
 		return (NULL);
-	}
-	return (retrieve_nline(&d));
+	stream->fd = fd;
+	nline = gnl(stream, &re[fd]);
+	if (!nline)
+		return (free(stream), NULL);
+	return (free(stream), (char *)nline);
 }
-/*
-#include <fcntl.h>
-#include <stdio.h>
-int main(int argc, char **argv)
-{
-	char	*line;
-	int		fd;
-	char	*filename;
-
-    if (argc > 1)
-	{
-		while (--argc)
-		{
-			filename = argv[argc];
-			fd = open(filename, O_RDONLY);
-			line = get_next_line(fd);
-			while (line)
-			{
-				printf("%s", line);
-				free(line);
-				line = get_next_line(fd);
-			}
-			close(fd);
-		}
-	}
-}
-*/
