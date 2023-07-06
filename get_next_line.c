@@ -3,135 +3,155 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mcutura <mcutura@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: mcutura <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/05/09 01:00:17 by mcutura           #+#    #+#             */
-/*   Updated: 2023/05/19 06:13:26 by mcutura          ###   ########.fr       */
+/*   Created: 2023/06/19 23:36:17 by mcutura           #+#    #+#             */
+/*   Updated: 2023/06/20 01:47:23 by mcutura          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line.h"
+#include <stdlib.h>
+#include <unistd.h>
 
-static int	init_buffer(t_stream *stream, unsigned char **re, ssize_t *rs)
+#ifndef BUFFER_SIZE
+# define BUFFER_SIZE 4242
+#endif
+
+void	ft_memcpy(void *dest, const void *src, size_t n)
 {
-	if (*rs == -1)
-	{
-		stream->len = read(stream->fd, stream->buff, BUFFER_SIZE);
-		return (stream->len);
-	}
-	if (!*re)
-		return (-1);
-	ft_memcpy(stream->buff, *re, *rs);
-	free(*re);
-	stream->len = *rs;
-	stream->off = 0;
-	*rs = -1;
-	return (stream->len);
+	if (!src)
+		return ;
+	while (n--)
+		*(unsigned char *)dest++ = *(unsigned char *)src++;
 }
 
-static void	save_re(t_stream *stream, unsigned char **re, ssize_t *rs)
+void	ft_memmove(void *dest, const void *src, size_t n)
 {
-	if (stream->off < (size_t)stream->len)
+	if (!src || dest == src)
+		return ;
+	if (dest < src)
 	{
-		*re = malloc(stream->len - stream->off);
-		*rs = stream->len - stream->off;
+		ft_memcpy(dest, src, n);
+		return ;
 	}
-	if (!*re || stream->off >= (size_t)stream->len)
-		*rs = -1;
-	else
-		ft_memcpy(*re, stream->buff + stream->off, *rs);
+	while (n--)
+		*(unsigned char *)(dest + n) = *(unsigned char *)(src + n);
 }
 
-static unsigned char	*getl(t_stream *s, size_t *n)
+void	*ft_memccpy(void *dest, const void *src, int c, size_t n)
 {
-	unsigned char	*line;
-	unsigned char	*tmp;
+	if (!src)
+		return (NULL);
+	while (n--)
+	{
+		*(unsigned char *)dest++ = *(unsigned char *)src;
+		if (*(unsigned char *)src++ == (unsigned char)c)
+			return ((void *)src);
+	}
+	return (NULL);
+}
 
+void	ft_bzero(void *buff, size_t n)
+{
+	while (n--)
+		*(unsigned char *)buff = 0;
+}
+
+void	*ft_realloc(void *ptr, size_t old, size_t new)
+{
+	void	*nptr;
+
+	if (!new)
+		return (free(ptr), NULL);
+	nptr = malloc(new);
+	if (!nptr)
+		return (NULL);
+	if (old && old <= new)
+		ft_memcpy(nptr, ptr, old);
+	if (ptr)
+		free(ptr);
+	return (nptr);
+}
+
+char	*find_line(int fd, char *buff, ssize_t *s)
+{
+	char	*seek;
+	char	*line;
+	size_t	len;
+
+	len = 0;
 	line = NULL;
-	while (s->len > 0)
+	while (*s > 0)
 	{
-		line = ft_memgrow(line, *n, *n + s->len + 1);
-		if (!line)
-			return (NULL);
-		tmp = ft_memccpy(line + *n, s->buff, 10, s->len);
-		if (tmp)
+		line = ft_realloc(line, len, len + *s + 1);
+		seek = ft_memccpy(line + len, buff, '\n', *s);
+		if (seek)
 		{
-			s->off = (size_t)(tmp - line - *n);
-			*n += s->off;
+			// found it, shuffle the buffs
+			line[len + seek - buff] = 0;
+			if (seek == buff + *s)
+			{
+				ft_bzero(buff, *s);
+				*s = 0;
+				return (line);
+			}
+			*s -= seek - buff;
+			ft_memmove(buff, seek, *s);
+			ft_bzero(buff + *s, BUFFER_SIZE - *s);
 			return (line);
 		}
-		*n += s->len;
-		s->len = read(s->fd, s->buff, BUFFER_SIZE);
+		len += *s;
+		*s = read(fd, buff, BUFFER_SIZE);
 	}
-	if (s->len == -1)
+	if (*s < 0)
 		return (free(line), NULL);
-	return (line);
-}
-
-static unsigned char	*gnl(t_stream *s, unsigned char **re, ssize_t *rs)
-{
-	size_t			n;
-	unsigned char	*line;
-
-	n = 0;
-	if (init_buffer(s, re, rs) < 1)
-		return (NULL);
-	line = getl(s, &n);
-	if (!line)
-		return (NULL);
-	if (s->len > 0)
-		save_re(s, re, rs);
-	else
-		*rs = -1;
-	line[n] = '\0';
+	line[len] = 0;
 	return (line);
 }
 
 char	*get_next_line(int fd)
 {
-	static unsigned char	*re = NULL;
-	static ssize_t			res = -1;
-	unsigned char			*nline;
-	t_stream				*stream;
+	static char		buff[BUFFER_SIZE];
+	static ssize_t	size = 0;
 
-	if (BUFFER_SIZE <= 0 || fd < 0)
+	if (fd < 0 || BUFFER_SIZE < 1)
 		return (NULL);
-	stream = malloc(sizeof(t_stream));
-	if (!stream)
-		return (NULL);
-	stream->fd = fd;
-	nline = gnl(stream, &re, &res);
-	if (!nline)
+	if (!size)
+		size = read(fd, &buff[0], BUFFER_SIZE);
+	if (size < 0)
 	{
-		re = NULL;
-		return (free(stream), NULL);
+		size = 0;
+		return (NULL);
 	}
-	return (free(stream), (char *)nline);
+	if (!size)
+		return (NULL);
+	return (find_line(fd, &buff[0], &size));
 }
 
 /*
-#include <fcntl.h>
 #include <stdio.h>
-int main(int ac, char **av)
+#include <fcntl.h>
+int	main(int ac, char **av)
 {
 	int		fd;
 	char	*line;
 
-	if (ac == 1)
+	if (ac != 2)
+		return (0);
+	if (*av[1] == '-')
 		fd = 0;
-	else if (ac == 2)
-		fd = open(av[1], O_RDONLY);
 	else
-		return(printf("%s: error: too many arguments", av[0]));
+		fd = open(av[1], O_RDONLY);
+	if (fd == -1)
+		return (1);
 	line = get_next_line(fd);
 	while (line)
 	{
-		printf("LINE:%s", line);
+		printf("%s", line);
 		free(line);
 		line = get_next_line(fd);
 	}
-	if (fd != -1)
-		close(fd);
+	printf("\n### READ DONE ###\n");
 	return (0);
 }
 */
